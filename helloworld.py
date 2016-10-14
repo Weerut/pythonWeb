@@ -1,62 +1,62 @@
 # This Python file uses the following encoding: utf-8
 
+import os
+
+import jinja2
 import webapp2
 
-form="""
-<form method="post">
-What's your birthday?
-<br>
+template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
-<label>Month
-<input type="text" name="month">
-</label>
+hidden_html = """
+<input type="hidden" name="food" value="%s">
+"""
 
-<label>Day
-<input type="text" name="day">
-</label>
+item_html = "<li>%s</li>"
 
-<label>Year
-<input type="text" name="year">
-</label>
-
+shopping_list_html = """
 <br>
 <br>
-<input type="submit">
-</form>
+<h2>Shopping List</h2>
+<ul>
+%s
+</ul>
 """
 
 
-months = ['January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December']
-          
-def valid_month(month):
-	
-class MainPage(webapp2.RequestHandler):
-	def get(self):
-		self.response.write(form)
+class Handler(webapp2.RequestHandler):
 
-	def post(self):
-		self.response.write("Yeah here you posted a form")
+    def write(self, *a, **kw):
+        self.response.out.write(*a, **kw)
 
-class TestHandler(webapp2.RequestHandler):
-	def get(self):
-		self.response.headers['Content­Type'] = 'text/plain'
-		q=self.request.get("q")
-		# self.response.write(q)
-		self.response.write(self.request)
+    def render_str(self, template, **params):
+        t = jinja_env.get_template(template)
+        return t.render(params)
 
-app = webapp2.WSGIApplication([
-	('/', MainPage),
-	('/testform', TestHandler),
+    def render(self, template, **kw):
+        self.write(self.render_str(template, **kw))
 
-], debug=True)
+
+class MainPage(Handler):
+
+    def get(self):
+        self.render("shopping_list.html")
+
+        # output = form_html
+        # output_hidden = ""
+
+        # items = self.request.get_all("food")
+        # if items:
+        # 	output_item = ""
+        # 	for item in items:
+        # 		output_hidden += hidden_html % item
+        # 		output_item += item_html % item
+
+        # 	output_shopping = shopping_list_html % output_item
+        # 	output += output_shopping
+
+        # self.write(output)
+
+app = webapp2.WSGIApplication([('/', MainPage),
+                               ],
+                              debug=True)
