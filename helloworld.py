@@ -5,24 +5,11 @@ import os
 import jinja2
 import webapp2
 
+from google.appengine.ext import db
+
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-
-hidden_html = """
-<input type="hidden" name="food" value="%s">
-"""
-
-item_html = "<li>%s</li>"
-
-shopping_list_html = """
-<br>
-<br>
-<h2>Shopping List</h2>
-<ul>
-%s
-</ul>
-"""
-
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
+    autoescape=True)
 
 class Handler(webapp2.RequestHandler):
 
@@ -36,26 +23,34 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
+class Art(db.Model):
+    title=db.StringProperty(required = True)
+    art=db.TextProperty(required = True)
+    created=db.DateTimeProperty(auto_now_add = True)
+
+
 
 class MainPage(Handler):
+    def render_front(self,title="",art="",error=""):
+        arts = db.GqlQuery("SELECT * FROM Art "
+            "ORDER BY created DESC ")
+        self.render("front.html",title=title,art=art,error=error,arts=arts)
 
     def get(self):
-        self.render("shopping_list.html")
+        self.render_front()
 
-        # output = form_html
-        # output_hidden = ""
+    def post(self):
+        title = self.request.get("title")
+        art = self.request.get("art")
 
-        # items = self.request.get_all("food")
-        # if items:
-        # 	output_item = ""
-        # 	for item in items:
-        # 		output_hidden += hidden_html % item
-        # 		output_item += item_html % item
-
-        # 	output_shopping = shopping_list_html % output_item
-        # 	output += output_shopping
-
-        # self.write(output)
+        if title and art :
+            a = Art(title=title, art= art)
+            a.put()
+            
+            self.redirect("/")  
+        else:
+            error="we need both title and some artwork"
+            self.render_front(title,art,error)
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ],
